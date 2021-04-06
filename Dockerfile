@@ -1,4 +1,4 @@
-FROM alpine:3.5
+FROM alpine:3.5 AS build
 
 #Create Ant Dir
 RUN mkdir -p /opt/ant/
@@ -9,7 +9,7 @@ RUN tar -xvzf /opt/ant/apache-ant-1.9.8-bin.tar.gz -C /opt/ant/
 # Remove tar file
 RUN rm -f /opt/ant/apache-ant-1.9.8-bin.tar.gz
 #Drop Sonarqube lib
-RUN wget http://downloads.sonarsource.com/plugins/org/codehaus/sonar-plugins/sonar-ant-task/2.3/sonar-ant-task-2.3.jar -P /opt/ant/apache-ant-1.9.8/lib/
+#RUN wget http://downloads.sonarsource.com/plugins/org/codehaus/sonar-plugins/sonar-ant-task/2.3/sonar-ant-task-2.3.jar -P /opt/ant/apache-ant-1.9.8/lib/
 #Install JDK 1.8
 RUN apk --update add openjdk8
 #Install GIT
@@ -22,3 +22,16 @@ ENV ANT_HOME=/opt/ant/apache-ant-1.9.8
 ENV ANT_OPTS="-Xms256M -Xmx512M"
 #Updating Path
 ENV PATH="${PATH}:${HOME}/bin:${ANT_HOME}/bin"
+
+WORKDIR /rps-ant
+COPY . /rps-ant/
+
+RUN ant clean compile package war
+
+
+FROM tomcat:8-jre8
+
+COPY --from=build /rps-ant/target/roshambo.war /usr/local/tomcat/webapps
+
+EXPOSE 8080
+
